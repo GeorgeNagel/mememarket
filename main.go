@@ -24,6 +24,10 @@ func main() {
 		// TODO: Do this the right way, likely by creating multiple callbacks
 		if path == "/" {
 			handleRoot(w, r, conn)
+		} else if path == "/memes/add" {
+			addMeme(w, r, conn)
+		} else if path == "/memes" {
+			listMemes(w, r, conn)
 		}
 	})
 
@@ -37,4 +41,33 @@ func handleRoot(w http.ResponseWriter, r *http.Request, conn *pgx.Conn) {
 		panic(err)
 	}
 	fmt.Fprintf(w, "Root. Memes: %d", memeCount)
+}
+
+func listMemes(w http.ResponseWriter, r *http.Request, conn *pgx.Conn) {
+	rows, err := conn.Query("select name, price from memes")
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	memes := ""
+	for rows.Next() {
+		var name string
+		var price int
+		err = rows.Scan(&name, &price)
+		if err != nil {
+			// TODO: Clean up error propagation
+			panic(err)
+		}
+		memes = fmt.Sprintf("%s\n%s: %d", memes, name, price)
+	}
+	fmt.Fprint(w, memes)
+}
+
+func addMeme(w http.ResponseWriter, r *http.Request, conn *pgx.Conn) {
+	_, err := conn.Exec("insert into memes (name, price) VALUES ('test', 12)")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Fprintf(w, "Added meme successfully.")
 }
