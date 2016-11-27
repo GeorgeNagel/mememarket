@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/jackc/pgx"
-	"html"
+	// "html"
 	"log"
 	"net/http"
 )
@@ -20,15 +20,17 @@ func main() {
 	}
 	fmt.Println("IT WORKED")
 
-	var memeCount int
-	err = conn.QueryRow("SELECT COUNT(*) FROM memes").Scan(&memeCount)
-	fmt.Printf("Memes: %d\n", memeCount)
-}
-
-func server() {
+	// Create and start the server
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
+		var memeCount int
+		err = conn.QueryRow("SELECT COUNT(*) FROM memes").Scan(&memeCount)
+		fmt.Fprintf(w, "Memes: %d", memeCount)
+		// fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
 	})
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func server() {
+
 }
