@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/jackc/pgx"
-	// "html"
 	"log"
 	"net/http"
 )
@@ -18,19 +17,24 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("IT WORKED")
 
 	// Create and start the server
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		var memeCount int
-		err = conn.QueryRow("SELECT COUNT(*) FROM memes").Scan(&memeCount)
-		fmt.Fprintf(w, "Memes: %d", memeCount)
-		// fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
+		path := r.URL.Path
+		// TODO: Do this the right way, likely by creating multiple callbacks
+		if path == "/" {
+			handleRoot(w, r, conn)
+		}
 	})
 
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func server() {
-
+func handleRoot(w http.ResponseWriter, r *http.Request, conn *pgx.Conn) {
+	var memeCount int
+	err := conn.QueryRow("SELECT COUNT(*) FROM memes").Scan(&memeCount)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Fprintf(w, "Root. Memes: %d", memeCount)
 }
