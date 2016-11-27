@@ -8,54 +8,50 @@ import (
 )
 
 func main() {
+	// Create and start the server
+	http.HandleFunc("/", handleRoot)
+	http.HandleFunc("/memes/add", addMeme)
+	http.HandleFunc("/memes", listMemes)
+	http.HandleFunc("/accounts/add", addAccount)
+	http.HandleFunc("/accounts", listAccounts)
+
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}
+
+func connectPG() (*pgx.Conn, error) {
 	config := pgx.ConnConfig{
 		Host:     "localhost",
 		Database: "mememarket",
 		User:     "postgres",
 	}
 	conn, err := pgx.Connect(config)
-	if err != nil {
-		panic(err)
-	}
-
-	// Create and start the server
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		path := r.URL.Path
-		// TODO: Do this the right way, likely by creating multiple callbacks
-		if path == "/" {
-			handleRoot(w, conn)
-		} else if path == "/memes/add" {
-			addMeme(w, conn)
-		} else if path == "/memes" {
-			listMemes(w, conn)
-		} else if path == "/accounts/add" {
-			addAccount(w, conn)
-		} else if path == "/accounts" {
-			listAccounts(w, conn)
-		}
-	})
-
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	return conn, err
 }
 
-func handleRoot(w http.ResponseWriter, conn *pgx.Conn) {
-	var memeCount int
-	err := conn.QueryRow("SELECT COUNT(*) FROM memes").Scan(&memeCount)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Fprintf(w, "Root. Memes: %d", memeCount)
+func handleRoot(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Root.")
 }
 
-func addAccount(w http.ResponseWriter, conn *pgx.Conn) {
-	_, err := conn.Exec("insert into accounts (username, settled) VALUES ('test', 1000)")
+func addAccount(w http.ResponseWriter, r *http.Request) {
+	conn, err := connectPG()
+	if err != nil {
+		fmt.Fprint(w, "Problem connecting to Postgres")
+		return
+	}
+	_, err = conn.Exec("insert into accounts (username, settled) VALUES ('test', 1000)")
 	if err != nil {
 		panic(err)
 	}
 	fmt.Fprintf(w, "Added account successfully.")
 }
 
-func listAccounts(w http.ResponseWriter, conn *pgx.Conn) {
+func listAccounts(w http.ResponseWriter, r *http.Request) {
+	conn, err := connectPG()
+	if err != nil {
+		fmt.Fprint(w, "Problem connecting to Postgres")
+		return
+	}
+
 	rows, err := conn.Query("select username, settled from accounts")
 	if err != nil {
 		panic(err)
@@ -76,7 +72,13 @@ func listAccounts(w http.ResponseWriter, conn *pgx.Conn) {
 	fmt.Fprint(w, accounts)
 }
 
-func listMemes(w http.ResponseWriter, conn *pgx.Conn) {
+func listMemes(w http.ResponseWriter, r *http.Request) {
+	conn, err := connectPG()
+	if err != nil {
+		fmt.Fprint(w, "Problem connecting to Postgres")
+		return
+	}
+
 	rows, err := conn.Query("select name, price from memes")
 	if err != nil {
 		panic(err)
@@ -97,8 +99,14 @@ func listMemes(w http.ResponseWriter, conn *pgx.Conn) {
 	fmt.Fprint(w, memes)
 }
 
-func addMeme(w http.ResponseWriter, conn *pgx.Conn) {
-	_, err := conn.Exec("insert into memes (name, price) VALUES ('test', 12)")
+func addMeme(w http.ResponseWriter, r *http.Request) {
+	conn, err := connectPG()
+	if err != nil {
+		fmt.Fprint(w, "Problem connecting to Postgres")
+		return
+	}
+
+	_, err = conn.Exec("insert into memes (name, price) VALUES ('test', 12)")
 	if err != nil {
 		panic(err)
 	}
