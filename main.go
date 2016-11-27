@@ -28,8 +28,10 @@ func main() {
 			addMeme(w, conn)
 		} else if path == "/memes" {
 			listMemes(w, conn)
-		} else if path == "/accounts/1" {
-			detailAccount(w, conn, 1)
+		} else if path == "/accounts/add" {
+			addAccount(w, conn)
+		} else if path == "/accounts" {
+			listAccounts(w, conn)
 		}
 	})
 
@@ -46,11 +48,32 @@ func handleRoot(w http.ResponseWriter, conn *pgx.Conn) {
 }
 
 func addAccount(w http.ResponseWriter, conn *pgx.Conn) {
-
+	_, err := conn.Exec("insert into accounts (username, settled) VALUES ('test', 1000)")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Fprintf(w, "Added account successfully.")
 }
 
-func detailAccount(w http.ResponseWriter, conn *pgx.Conn, accountNumber int) {
+func listAccounts(w http.ResponseWriter, conn *pgx.Conn) {
+	rows, err := conn.Query("select username, settled from accounts")
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
 
+	accounts := ""
+	for rows.Next() {
+		var username string
+		var settled int
+		err = rows.Scan(&username, &settled)
+		if err != nil {
+			// TODO: Clean up error propagation
+			panic(err)
+		}
+		accounts = fmt.Sprintf("%s\n%s: $%d free", accounts, username, settled)
+	}
+	fmt.Fprint(w, accounts)
 }
 
 func listMemes(w http.ResponseWriter, conn *pgx.Conn) {
