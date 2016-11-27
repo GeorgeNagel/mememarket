@@ -40,7 +40,8 @@ SET default_with_oids = false;
 
 CREATE TABLE accounts (
     username text NOT NULL,
-    id bigint NOT NULL
+    id bigint NOT NULL,
+    settled integer
 );
 
 
