@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/jackc/pgx"
+	"html/template"
 	"log"
 	"net/http"
 )
@@ -38,11 +39,24 @@ func addAccount(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, "Problem connecting to Postgres")
 		return
 	}
-	_, err = conn.Exec("insert into accounts (username, settled) VALUES ('test', 1000)")
-	if err != nil {
-		panic(err)
+	if r.Method == http.MethodGet {
+		t, _ := template.ParseFiles("accounts_new.html")
+		t.Execute(w, nil)
+	} else if r.Method == http.MethodPost {
+		err = r.ParseForm()
+		if err != nil {
+			// TODO: Handle this better
+			panic(err)
+		}
+		formData := r.Form
+		username := formData["username"][0]
+
+		_, err = conn.Exec("insert into accounts (username, settled) VALUES ($1, 0)", username)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Fprintf(w, "Added account successfully.")
 	}
-	fmt.Fprintf(w, "Added account successfully.")
 }
 
 func listAccounts(w http.ResponseWriter, r *http.Request) {
